@@ -23,12 +23,14 @@ Stack: FastAPI + SQLAlchemy 2 + PostgreSQL, plain HTML/JS front end (no build st
 - **Excel export:** per package (leveled comparison + notes) and per project (summary + one sheet per package). Variances are live formulas; sheets print landscape, one page wide. Needs Excel 2019 or Microsoft 365 (uses MINIFS)
 - **Backup / restore** as one JSON file
 
-## Deploy (browser only, free)
-1. **Neon:** create a free project at neon.com, copy the connection string (starts with `postgresql://`).
-2. **GitHub:** upload this folder to a **private** repo (drag and drop in the browser).
-3. **Render:** New > Blueprint > pick the repo. Set `DATABASE_URL` (Neon string), `APP_USER`, `APP_PASSWORD`.
-4. Open the `onrender.com` link and log in. Tables are created automatically on first start, and new tables (such as notes) are added automatically when you update an existing deployment.
-5. Optional demo data (fictional): run `python seed.py` once with `DATABASE_URL` set, or just add your own.
+## Deploy (free: Neon + Vercel)
+1. **Neon:** create a free project at neon.com and copy the **pooled** connection string (host contains `-pooler`).
+2. **GitHub:** push this repo (never commit `*.db`, `.venv` or connection strings).
+3. **Vercel:** Add New > Project > import the GitHub repo. Framework preset can stay "Other" / auto-detected (FastAPI).
+4. Under **Environment Variables** add `DATABASE_URL` (Neon string), `APP_USER`, `APP_PASSWORD`, then Deploy.
+5. Open the `.vercel.app` link and log in. Tables are created automatically on the first request.
+6. Optional demo data (fictional): run `python seed.py` once locally with `DATABASE_URL` set to a **test** database.
+Vercel's free Hobby plan is for personal, non-commercial use; check their terms.
 
 ## Back up your data (important)
 Neon's free plan only keeps a short restore window (about 6 hours). Use **Download backup** on the Projects page
@@ -46,16 +48,11 @@ pytest                            # tests (use a throwaway database, never your 
 |---|---|
 | `app.py` | API, database tables, login, notes, backup/restore, export routes |
 | `export_xlsx.py` | Builds the Excel workbooks |
-| `static/` | `index.html`, `main.js` (screens), `store.js` (talks to the API), `style.css` |
+| `public/` | `index.html`, `main.js` (screens), `store.js` (talks to the API), `style.css` |
 | `schema.sql` | Reference schema and an example analytics query |
 | `seed.py` | Fictional demo data |
 | `test_api.py` | Tests: hierarchy, foreign keys, cascade delete, backup/restore, login |
-| `render.yaml` | Free Render deploy config |
-
-## Hosting notes
-This app is a long-running Python server, so **Render** (free web service) is the simplest fit and is what `render.yaml` configures.
-Vercel can also run FastAPI (it detects an `app` in `app.py`), but static files must move to `public/` and every request runs as a short serverless function; that variant is not set up or tested here.
 
 ## Notes
-- Free Render services sleep after about 15 minutes idle; Neon's free compute sleeps after 5. The first request after a pause is slow.
+- Neon's free compute sleeps after 5 idle minutes and Vercel functions start cold, so the first request after a pause is slow.
 - Never commit real vendor names, prices or connection strings.

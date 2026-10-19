@@ -1,4 +1,4 @@
-git check-ignore -v .venv*.db
+*.db
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -9,3 +9,4 @@ venv/
 .idea/
 .DS_Store
 node_modules/
+.vercel/

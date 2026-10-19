@@ -1,6 +1,7 @@
 """Procurement Tracker API: FastAPI + SQLAlchemy.
 Hierarchy: Project -> Package -> Supplier (real foreign keys, ON DELETE CASCADE).
 Run:  uvicorn app:app --reload        (open http://127.0.0.1:8000)
+Deploy: Vercel detects `app` in this file; the front end is served from public/.
 DB:   DATABASE_URL env var. Default: sqlite:///tracker.db (local dev only).
       Production: your Neon string, e.g. postgresql://user:pass@ep-xxx.neon.tech/db?sslmode=require
 Auth: set APP_USER and APP_PASSWORD to require a login (always set them online).
@@ -10,7 +11,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
@@ -24,7 +25,9 @@ DB_URL = os.getenv("DATABASE_URL", "sqlite:///tracker.db")
 for prefix in ("postgres://", "postgresql://"):          # hosted DBs hand out these prefixes
     if DB_URL.startswith(prefix):
         DB_URL = "postgresql+psycopg://" + DB_URL[len(prefix):]
-engine = create_engine(DB_URL, pool_pre_ping=True, pool_recycle=300)
+# prepare_threshold=None keeps psycopg compatible with Neon's pooled (PgBouncer) endpoint
+_args = {"prepare_threshold": None} if DB_URL.startswith("postgresql+psycopg") else {}
+engine = create_engine(DB_URL, pool_pre_ping=True, pool_recycle=300, connect_args=_args)
 
 @event.listens_for(Engine, "connect")
 def _sqlite_fk(dbapi_conn, _):                            # SQLite ignores FKs unless enabled
@@ -258,6 +261,7 @@ def restore(b: Backup):
         raise HTTPException(422, f"Invalid backup file: {e}")
     return {"ok": True, "projects": len(b.projects), "packages": len(b.packages), "suppliers": len(b.suppliers), "notes": len(b.notes)}
 
-@app.get("/")
-def index(): return FileResponse("static/index.html")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Front end lives in public/. Vercel serves public/ from its CDN; locally FastAPI serves it here.
+PUBLIC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "public")
+if os.path.isdir(PUBLIC):
+    app.mount("/", StaticFiles(directory=PUBLIC, html=True), name="public")
