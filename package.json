@@ -1,9 +1,0 @@
-{
-  "name": "procurement-tracker",
-  "version": "1.0.0",
-  "private": true,
-  "description": "FastAPI + PostgreSQL app. It runs on Render, not inside StackBlitz.",
-  "scripts": {
-    "start": "echo This is a Python app. It runs on Render, not in StackBlitz."
-  }
-}
